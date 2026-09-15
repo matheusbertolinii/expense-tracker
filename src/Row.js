@@ -1,25 +1,33 @@
 import React from 'react'
 import Cell from './Cell'
+import { MdModeEdit } from "react-icons/md";
+import { RiDeleteBin6Line } from "react-icons/ri";
 
-const Row = ({ expense, handleDelete, handleEdit }) => {
+const Row = ({ expense, handleDelete, handleEdit, categories }) => {
   const { id, ...expenseData } = expense
 
   return (
     <tr>
-      {Object.entries(expenseData).map(([key, value]) => {
-        if (key === "amount") {
-          value = new Intl.NumberFormat("pt-BR", {
-            style: "currency",
-            currency: "BRL"
-          }).format(value)
-        }
-        return (
-          <Cell key={key} celldata={value} />
-        )
-      })}
+      <td>{expense.name}</td>
+
+      <td>{new Intl.NumberFormat("pt-BR", {
+        style: "currency",
+        currency: "BRL"
+      }).format(expense.amount)}</td>
+
       <td>
-        <button onClick={() => handleEdit(expense.id)}>Edit</button>
-        <button onClick={() => handleDelete(expense.id)}>Delete</button>
+        {
+          <span className={`category`} style={{ color: `${categories[expense.category]}`, backgroundColor: `color-mix(in srgb, ${categories[expense.category]} 20%, transparent)` }}>
+            {expense.category}
+          </span>
+        }
+      </td>
+
+      <td>{new Date(expense.date).toLocaleDateString('pt-BR')}</td>
+
+      <td>
+        <button className='editBtn btn' onClick={() => handleEdit(expense.id)}><MdModeEdit className='btnIcon' /></button>
+        <button className='deleteBtn btn' onClick={() => handleDelete(expense.id)}><RiDeleteBin6Line className='btnIcon' /></button>
       </td>
     </tr >
   )
