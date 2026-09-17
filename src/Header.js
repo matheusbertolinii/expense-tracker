@@ -10,13 +10,6 @@ const Header = () => {
         <TbPigMoney className='pigIcon' />
         <h1>Expendio</h1>
       </div>
-      <div className='personalInfo'>
-        <div>
-          <p className='personalInfoName'>Matheus Bertolini</p>
-          <p className='personalInfoJob'>Developer</p>
-        </div>
-        <TbCameraSelfie className='personalImg' />
-      </div>
     </header>
   )
 }

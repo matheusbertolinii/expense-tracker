@@ -5,6 +5,9 @@ import { RiDeleteBin6Line } from "react-icons/ri";
 
 const Row = ({ expense, handleDelete, handleEdit, categories }) => {
   const { id, ...expenseData } = expense
+  const [year, month, day] = expense.date.split('-')
+
+  const formattedDate = `${day}/${month}/${year}`
 
   return (
     <tr>
@@ -23,7 +26,7 @@ const Row = ({ expense, handleDelete, handleEdit, categories }) => {
         }
       </td>
 
-      <td>{new Date(expense.date).toLocaleDateString('pt-BR')}</td>
+      <td>{formattedDate}</td>
 
       <td>
         <button className='editBtn btn' onClick={() => handleEdit(expense.id)}><MdModeEdit className='btnIcon' /></button>

@@ -5,7 +5,7 @@ const SortIcon = ({ column, sort }) => {
   if (sort.key !== column) {
     return <FaSort />
   }
-  return sort.direction === 'asc' ? <FaSortUp /> : <FaSortDown />
+  return sort.direction === 'desc' ? <FaSortUp style={{ color: '#52B788' }} /> : <FaSortDown style={{ color: '#52B788' }} />
 }
 
 export default SortIcon

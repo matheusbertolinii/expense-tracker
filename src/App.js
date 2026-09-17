@@ -1,5 +1,5 @@
 import './index.css';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Header from './Header';
 import AddForm from './AddForm';
 import ExpenseTable from './ExpenseTable'
@@ -8,6 +8,16 @@ import CategoryForm from './CategoryForm';
 import Filter from './Filter.js'
 
 function App() {
+  const getToday = () => {
+    const today = new Date()
+
+    const year = today.getFullYear()
+    const month = String(today.getMonth() + 1).padStart(2, '0')
+    const day = String(today.getDate()).padStart(2, '0')
+
+    return `${year}-${month}-${day}`
+  }
+
   const defaultCategories = {
     'Food': '#facc15',
     'Transport': '#a78bfa',
@@ -22,16 +32,16 @@ function App() {
     'Personal': '#4ade80',
     'Others': '#94a3b8',
   }
+
   const [expenses, setExpenses] = useState([])
   const [formData, setFormData] = useState({
     name: '',
     amount: '',
     category: '',
-    date: new Date().toISOString().split("T")[0]
+    date: getToday()
   })
+
   const [editID, setEditID] = useState(null)
-  const [filter, setFilter] = useState('')
-  const [filterResults, setFilterResults] = useState('')
   const [categories, setCategories] = useState(() => {
     const savedCategories = localStorage.getItem('categories')
     return savedCategories ? JSON.parse(localStorage.getItem('categories')) : defaultCategories
@@ -42,6 +52,12 @@ function App() {
     key: null,
     direction: null
   })
+  const [filter, setFilter] = useState('')
+  const [search, setSearch] = useState('')
+  const [filterDate, setFilterDate] = useState('')
+  const [filterAmount, setFilterAmount] = useState('')
+  const [activeCategories, setActiveCategories] = useState([])
+  const [addNewCategory, setAddNewCategory] = useState(false)
 
   useEffect(() => {
     const expenseList = JSON.parse(localStorage.getItem('expenses'));
@@ -51,12 +67,12 @@ function App() {
   }, [])
 
   useEffect(() => {
-    setFilterResults(filter === '' ? expenses : expenses.filter(expense => expense.category === filter))
-  }, [expenses, filter])
-
-  useEffect(() => {
     localStorage.setItem('categories', JSON.stringify(categories))
   }, [categories])
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [filter, sort, search, filterDate, filterAmount])
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -90,7 +106,7 @@ function App() {
       name: '',
       amount: '',
       category: '',
-      date: new Date().toISOString().split("T")[0]
+      date: getToday()
     })
   }
 
@@ -119,6 +135,7 @@ function App() {
     }))
     setCategoryColor('')
     setCategoryName('')
+    setAddNewCategory(false)
   }
 
   const handleSort = (key) => {
@@ -143,24 +160,87 @@ function App() {
     )
   }
 
-  const sortedExpenses = [...filterResults].sort((a, b) => {
-    if (!sort.key) return 0
+  const toggleCategories = (category) => {
+    setActiveCategories(prev =>
+      activeCategories.includes(category)
+        ? prev.filter(item => item !== category)
+        : [...prev, category]
+    )
+  }
 
-    if (sort.key === 'name') {
-      const comparison = a.name.localeCompare(b.name)
-      return sort.direction === 'asc' ? comparison : -comparison
+  const shownExpenses = useMemo(() => {
+    let result = [...expenses]
+
+    if (filter !== '') {
+      result = result.filter(expense => expense.category === filter)
     }
 
-    if (sort.key === 'amount') {
-      const comparison = Number(a.amount) - Number(b.amount)
-      return sort.direction === 'asc' ? comparison : -comparison
+    if (search !== '') {
+      result = result.filter(expense => ((expense.name).toLowerCase()).includes(search.toLowerCase()))
     }
-    if (sort.key === 'date') {
-      const comparison = new Date(a.date) - new Date(b.date)
-      return sort.direction === 'asc' ? comparison : -comparison
+
+    if (sort.key) {
+      result.sort((a, b) => {
+        if (!sort.key) return 0
+
+        if (sort.key === 'name') {
+          const comparison = a.name.localeCompare(b.name)
+          return sort.direction === 'asc' ? comparison : -comparison
+        }
+
+        if (sort.key === 'amount') {
+          const comparison = Number(a.amount) - Number(b.amount)
+          return sort.direction === 'desc' ? comparison : -comparison
+        }
+        if (sort.key === 'date') {
+          const comparison = new Date(a.date) - new Date(b.date)
+          return sort.direction === 'desc' ? comparison : -comparison
+        }
+      })
     }
-    return 0
-  })
+
+    if (filterAmount !== '') {
+      result = result.filter(expense => (Number(expense.amount) >= Number(filterAmount)))
+    }
+
+    if (filterDate !== '') {
+      result = result.filter(expense => expense.date === filterDate)
+    }
+
+    if (activeCategories.length > 0) {
+      result = result.filter(expense => (activeCategories).includes(expense.category))
+    }
+
+    return result
+  }, [expenses, filter, search, sort, filterAmount, filterDate, activeCategories])
+
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 8
+
+  const totalPages = Math.ceil(shownExpenses.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const paginatedExpenses = shownExpenses.slice(
+    startIndex,
+    startIndex + itemsPerPage
+  )
+
+  const paginationFirstItem = paginatedExpenses.length === 0 ? 0 : startIndex + 1
+
+  const paginationLastItem = Math.min(
+    startIndex + itemsPerPage,
+    paginatedExpenses.length
+  )
+
+  useEffect(() => {
+    const totalPages = Math.ceil(shownExpenses.length / itemsPerPage)
+
+    if (totalPages === 0) {
+      setCurrentPage(1)
+    }
+    else if (currentPage > totalPages) {
+      setCurrentPage(totalPages)
+    }
+  }, [shownExpenses, currentPage])
 
   return (
     <div className="App">
@@ -174,13 +254,6 @@ function App() {
             handleChange={handleChange}
             categories={categories}
           />
-          <CategoryForm
-            handleAddCategory={handleAddCategory}
-            categoryColor={categoryColor}
-            setCategoryColor={setCategoryColor}
-            categoryName={categoryName}
-            setCategoryName={setCategoryName}
-          />
         </div>
 
         <div className='expenseList'>
@@ -189,20 +262,44 @@ function App() {
             setExpenses={setExpenses}
             filter={filter}
             setFilter={setFilter}
-            setFilterResults={setFilterResults}
+            setSearch={setSearch}
+            search={search}
             categories={categories} />
           <Filter
             filter={filter}
             setFilter={setFilter}
             categories={categories}
+            expenses={expenses}
+            filterAmount={filterAmount}
+            filterDate={filterDate}
+            setFilterAmount={setFilterAmount}
+            setFilterDate={setFilterDate}
+            toggleCategories={toggleCategories}
+            activeCategories={activeCategories}
+            setActiveCategories={setActiveCategories}
+            setCategories={setCategories}
+            categoryName={categoryName}
+            setCategoryName={setCategoryName}
+            categoryColor={categoryColor}
+            setCategoryColor={setCategoryColor}
+            handleAddCategory={handleAddCategory}
+            addNewCategory={addNewCategory}
+            setAddNewCategory={setAddNewCategory}
           />
           <ExpenseTable
-            expenses={sortedExpenses}
+            allItems={shownExpenses}
+            expenses={paginatedExpenses}
             handleDelete={handleDelete}
             handleEdit={handleEdit}
             categories={categories}
             sort={sort}
-            handleSort={handleSort} />
+            handleSort={handleSort}
+            currentPage={currentPage}
+            setCurrentPage={setCurrentPage}
+            totalPages={totalPages}
+            firstItem={paginationFirstItem}
+            lastItem={paginationLastItem}
+          />
         </div>
 
       </main>

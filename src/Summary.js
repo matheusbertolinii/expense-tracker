@@ -1,18 +1,9 @@
-import React from 'react'
-import { useState, useEffect } from 'react';
 import { FaSearch } from "react-icons/fa";
 
-const Summary = ({ expenses, setFilterResults }) => {
+const Summary = ({ expenses, setSearch, search }) => {
   const total = expenses.reduce((sum, expense) => {
     return sum + Number(expense.amount);
   }, 0);
-
-  const [search, setSearch] = useState('')
-
-  useEffect(() => {
-    const searchedExpenses = expenses.filter(expense => ((expense.name).toLowerCase()).includes(search.toLowerCase()))
-    setFilterResults(searchedExpenses)
-  }, [expenses, search])
 
   return (
     <div className='totalArea'>
